@@ -66,4 +66,8 @@ connection client::connect(const std::string& host, const std::string& port) {
     return connection(io_ctx_, ssl_ctx_, host, resolver_.resolve(host, port));
 }
 
+wss::connection client::ws(const std::string& host, const std::string& port, const std::string& uri) {
+    return wss::connection(io_ctx_, ssl_ctx_, host, port, uri, resolver_.resolve(host, port));
+}
+
 }

@@ -1,8 +1,7 @@
 #pragma once
 
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/ssl.hpp>
+#include <https-client/wss.hpp>
+
 #include <boost/beast/version.hpp>
 #include <memory>
 
@@ -34,6 +33,7 @@ public:
     client();
     ~client();
     connection connect(const std::string& host, const std::string& port);
+    wss::connection ws(const std::string& host, const std::string& port, const std::string& uri);
 private:
     boost::asio::io_context io_ctx_;
     boost::asio::ssl::context ssl_ctx_;
