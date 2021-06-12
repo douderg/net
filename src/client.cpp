@@ -1,4 +1,5 @@
-#include "https-client/client.hpp"
+#include <https-client/client.hpp>
+#include <https-client/cert_utils.hpp>
 #include <iostream>
 
 namespace https {
@@ -54,6 +55,9 @@ void connection::close() {
 client::client():
         ssl_ctx_(boost::asio::ssl::context::tlsv12_client),
         resolver_(io_ctx_) {
+#ifdef _WIN32
+    import_openssl_certificates(ssl_ctx_.native_handle());
+#endif
     ssl_ctx_.set_verify_mode(boost::asio::ssl::verify_peer);
     ssl_ctx_.set_default_verify_paths();
 }
