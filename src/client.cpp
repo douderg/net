@@ -21,7 +21,7 @@ connection::connection(
 connection::~connection() {
     try {
         close();
-    } catch (const std::runtime_error& err) {
+    } catch (const std::runtime_error&) {
     }
 }
 
@@ -51,7 +51,12 @@ response_t connection::send(const request_t& request) {
 
 void connection::close() {
     if (stream_) {
-        stream_->shutdown();
+        try {
+            stream_->shutdown();
+        } catch (const std::runtime_error& err) {
+            stream_.reset(nullptr);
+            throw err;
+        }
         stream_.reset(nullptr);
     }
 }

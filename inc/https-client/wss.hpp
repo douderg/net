@@ -5,6 +5,7 @@
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
+#include <future>
 
 namespace wss {
 
@@ -28,6 +29,8 @@ public:
 
     void write(const std::string& data);
     std::string read();
+
+    std::future<std::string> async_read();
 
     explicit operator bool() const;
 

@@ -51,13 +51,37 @@ std::string connection::read() {
     return boost::beast::buffers_to_string(buffer.data());
 }
 
+struct async_reader {
+    boost::beast::flat_buffer buffer;
+    std::promise<std::string> result;
+
+    void on_read(boost::beast::error_code ec, size_t bytes) {
+        if (ec) {
+            result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+            return;
+        }
+        result.set_value(boost::beast::buffers_to_string(buffer.data()));
+    }
+};
+
+std::future<std::string> connection::async_read() {
+    auto reader = std::make_shared<async_reader>();
+    stream_->async_read(reader->buffer, boost::beast::bind_front_handler(&async_reader::on_read, reader));
+    return reader->result.get_future();
+}
+
 connection::operator bool() const {
     return bool(stream_);
 }
 
 void connection::close() {
     if (stream_) {
-        stream_->close(boost::beast::websocket::close_code::normal);
+        try {
+            stream_->close(boost::beast::websocket::close_code::normal);
+        } catch (const std::runtime_error& err) {
+            stream_.reset(nullptr);
+            throw err;
+        }
         stream_.reset(nullptr);
     }
 }
