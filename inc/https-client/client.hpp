@@ -24,6 +24,8 @@ public:
 
     void close();
 
+    explicit operator bool() const;
+
 private:
     std::unique_ptr<boost::beast::ssl_stream<boost::beast::tcp_stream>> stream_;
 };

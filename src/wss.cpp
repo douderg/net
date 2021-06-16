@@ -51,6 +51,10 @@ std::string connection::read() {
     return boost::beast::buffers_to_string(buffer.data());
 }
 
+connection::operator bool() const {
+    return bool(stream_);
+}
+
 void connection::close() {
     if (stream_) {
         stream_->close(boost::beast::websocket::close_code::normal);

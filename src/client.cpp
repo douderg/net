@@ -34,6 +34,10 @@ connection& connection::operator=(connection&& other) {
     return *this;
 }
 
+connection::operator bool() const {
+    return bool(stream_);
+}
+
 response_t connection::send(const request_t& request) {
     if (!stream_) {
         throw std::runtime_error("connection is closed");

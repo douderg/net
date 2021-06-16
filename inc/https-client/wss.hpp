@@ -29,6 +29,8 @@ public:
     void write(const std::string& data);
     std::string read();
 
+    explicit operator bool() const;
+
     void close();
 private:
     std::unique_ptr<boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>>> stream_;
