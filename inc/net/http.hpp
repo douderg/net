@@ -3,6 +3,11 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <memory>
+#include <future>
+
+namespace net {
+class client;
+}
 
 namespace http {
 
@@ -27,7 +32,25 @@ public:
     explicit operator bool() const;
 
 private:
-    std::unique_ptr<boost::beast::tcp_stream> stream_;
+
+    friend class net::client;
+    typedef boost::beast::tcp_stream stream_t;
+    class connector;
+
+    std::unique_ptr<stream_t> stream_;
+};
+
+
+class connection::connector : public std::enable_shared_from_this<connection::connector> {
+    stream_t stream_;
+    std::string host_, port_;
+public:
+    connector(boost::asio::io_context& io_ctx, const std::string& host, const std::string& port);
+
+    void on_resolve(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type results);
+    void on_connect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type::endpoint_type endpoint);
+
+    std::promise<connection> result;
 };
 
 }

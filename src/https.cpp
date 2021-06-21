@@ -1,5 +1,7 @@
+#include <boost/beast/http/write.hpp>
 #include <net/https.hpp>
-
+#include <net/async.hpp>
+#include <boost/asio/strand.hpp>
 
 namespace https {
 
@@ -9,7 +11,7 @@ connection::connection(
         const std::string& sni_hostname, 
         boost::asio::ip::tcp::resolver::results_type resolved) {
     
-    stream_ = std::make_unique<boost::beast::ssl_stream<boost::beast::tcp_stream>>(io_ctx, ssl_ctx);
+    stream_ = std::make_unique<boost::beast::ssl_stream<boost::beast::tcp_stream>>(boost::asio::make_strand(io_ctx), ssl_ctx);
     if (!SSL_set_tlsext_host_name(stream_->native_handle(), sni_hostname.c_str())) {
         throw std::runtime_error("failed setting SNI host name");
     }
@@ -59,5 +61,50 @@ void connection::close() {
         stream_.reset(nullptr);
     }
 }
+
+
+connection::connector::connector(boost::asio::io_context& io_ctx, boost::asio::ssl::context& ssl_ctx, const std::string& host, const std::string& port): 
+        stream_(boost::asio::make_strand(io_ctx), ssl_ctx),
+        host_(host),
+        port_(port) {
+
+}
+
+void connection::connector::on_resolve(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type results) {
+    if (ec) {
+        result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+    } else {
+        if (!SSL_set_tlsext_host_name(stream_.native_handle(), host_.c_str())) {
+            result.set_exception(std::make_exception_ptr(std::runtime_error("failed setting SNI host name")));
+            return;
+        }
+        boost::beast::get_lowest_layer(stream_).async_connect(
+            results, 
+            boost::beast::bind_front_handler(&connector::on_connect, shared_from_this())
+        );
+    }
+}
+
+void connection::connector::on_connect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type::endpoint_type endpoint) {
+    if (ec) {
+        result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+    } else {
+        stream_.async_handshake(
+            boost::asio::ssl::stream_base::client,
+            boost::beast::bind_front_handler(&connector::on_handshake, shared_from_this())
+        );
+    }
+}
+
+void connection::connector::on_handshake(boost::beast::error_code ec) {
+    if (ec) {
+        result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+    } else {
+        connection conn;
+        conn.stream_ = std::make_unique<stream_t>(std::move(stream_));
+        result.set_value(std::move(conn));
+    }
+}
+
 
 }
