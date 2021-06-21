@@ -20,7 +20,7 @@ int main() {
     std::string url = ...; // your target host url here
     std::string port = "443"; // port number
 
-    auto conn = c.http(url, port);
+    auto conn = c.https(url, port);
     
     https::request_t req(boost::beast::http::verb::get, "/index.html", 11);
     req.set(boost::beast::http::field::host, url);
