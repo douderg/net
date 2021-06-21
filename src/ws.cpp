@@ -1,31 +1,28 @@
-#include <net/wss.hpp>
+#include <net/ws.hpp>
 #include <net/async.hpp>
 
 #include <boost/beast/version.hpp>
 
 
-namespace wss {
+namespace ws {
 
 connection::connection(
         boost::asio::io_context& io_ctx, 
-        boost::asio::ssl::context& ssl_ctx, 
-        const std::string& sni_hostname, 
+        const std::string& host, 
         const std::string& port,
         const std::string& uri, 
         boost::asio::ip::tcp::resolver::results_type resolved) {
     
-    stream_ = std::make_unique<boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>>>(io_ctx, ssl_ctx);
-    if (!SSL_set_tlsext_host_name(stream_->next_layer().native_handle(), sni_hostname.c_str())) {
-        throw std::runtime_error("failed setting SNI host name");
-    }
-    boost::beast::get_lowest_layer(*stream_).connect(resolved);
-    stream_->next_layer().handshake(boost::asio::ssl::stream_base::client);
-    stream_->handshake(sni_hostname + ":" + port, uri);
+    stream_ = std::make_unique<boost::beast::websocket::stream<boost::beast::tcp_stream>>(io_ctx);
+    stream_->next_layer().connect(resolved);
+    
     auto change_user_agent = [=](boost::beast::websocket::request_type& req)->void {
-        req.set(boost::beast::http::field::host, sni_hostname);
+        req.set(boost::beast::http::field::host, host);
         req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     };
     stream_->set_option(boost::beast::websocket::stream_base::decorator(change_user_agent));
+
+    stream_->handshake(host + ":" + port, uri);
 }
 
 connection::~connection() {
@@ -53,6 +50,8 @@ std::string connection::read() {
     stream_->read(buffer);
     return boost::beast::buffers_to_string(buffer.data());
 }
+
+
 
 std::future<std::string> connection::async_read() {
     auto reader = std::make_shared<async::reader>();

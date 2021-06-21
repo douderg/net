@@ -1,65 +1,9 @@
-#include <https-client/client.hpp>
-#include <https-client/cert_utils.hpp>
-#include <iostream>
+#include <net/client.hpp>
+#include <net/cert_utils.hpp>
+#include <boost/beast/version.hpp>
 
-namespace https {
 
-connection::connection(
-        boost::asio::io_context& io_ctx, 
-        boost::asio::ssl::context& ssl_ctx, 
-        const std::string& sni_hostname, 
-        boost::asio::ip::tcp::resolver::results_type resolved) {
-    
-    stream_ = std::make_unique<boost::beast::ssl_stream<boost::beast::tcp_stream>>(io_ctx, ssl_ctx);
-    if (!SSL_set_tlsext_host_name(stream_->native_handle(), sni_hostname.c_str())) {
-        throw std::runtime_error("failed setting SNI host name");
-    }
-    boost::beast::get_lowest_layer(*stream_).connect(resolved);
-    stream_->handshake(boost::asio::ssl::stream_base::client);
-}
-
-connection::~connection() {
-    try {
-        close();
-    } catch (const std::runtime_error&) {
-    }
-}
-
-connection::connection(connection&& other): stream_{other.stream_.release()} {
-    
-}
-
-connection& connection::operator=(connection&& other) {
-    stream_.reset(other.stream_.release());
-    return *this;
-}
-
-connection::operator bool() const {
-    return bool(stream_);
-}
-
-response_t connection::send(const request_t& request) {
-    if (!stream_) {
-        throw std::runtime_error("connection is closed");
-    }
-    boost::beast::http::write(*stream_, request);
-    boost::beast::flat_buffer buffer;
-    response_t result;
-    boost::beast::http::read(*stream_, buffer, result);
-    return result;
-}
-
-void connection::close() {
-    if (stream_) {
-        try {
-            stream_->shutdown();
-        } catch (const std::runtime_error& err) {
-            stream_.reset(nullptr);
-            throw err;
-        }
-        stream_.reset(nullptr);
-    }
-}
+namespace net {
 
 client::client():
         ssl_ctx_(boost::asio::ssl::context::tlsv12_client),
@@ -75,11 +19,19 @@ client::~client() {
 
 }
 
-connection client::connect(const std::string& host, const std::string& port) {
-    return connection(io_ctx_, ssl_ctx_, host, resolver_.resolve(host, port));
+http::connection client::http(const std::string& host, const std::string& port) {
+    return http::connection(io_ctx_, host, resolver_.resolve(host, port));
 }
 
-wss::connection client::ws(const std::string& host, const std::string& port, const std::string& uri) {
+ws::connection client::ws(const std::string& host, const std::string& port, const std::string& uri) {
+    return ws::connection(io_ctx_, host, port, uri, resolver_.resolve(host, port));
+}
+
+https::connection client::https(const std::string& host, const std::string& port) {
+    return https::connection(io_ctx_, ssl_ctx_, host, resolver_.resolve(host, port));
+}
+
+wss::connection client::wss(const std::string& host, const std::string& port, const std::string& uri) {
     return wss::connection(io_ctx_, ssl_ctx_, host, port, uri, resolver_.resolve(host, port));
 }
 

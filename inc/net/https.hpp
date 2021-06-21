@@ -1,8 +1,8 @@
 #pragma once
 
-#include <https-client/wss.hpp>
-
-#include <boost/beast/version.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/ssl.hpp>
 #include <memory>
 
 namespace https {
@@ -28,18 +28,6 @@ public:
 
 private:
     std::unique_ptr<boost::beast::ssl_stream<boost::beast::tcp_stream>> stream_;
-};
-
-class client {
-public:
-    client();
-    ~client();
-    connection connect(const std::string& host, const std::string& port);
-    wss::connection ws(const std::string& host, const std::string& port, const std::string& uri);
-private:
-    boost::asio::io_context io_ctx_;
-    boost::asio::ssl::context ssl_ctx_;
-    boost::asio::ip::tcp::resolver resolver_;
 };
 
 }
