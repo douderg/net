@@ -8,19 +8,19 @@ The interfaces are not particularly stable as I am still learning myself so I ha
 ### Basic usage
 
 ```
-#include <https-client/client.hpp>
+#include <net/client.hpp>
 #include <iostream>
 
 int main() {
     // the client object holds the boost::asio io and ssl contexts
     // it needs to be kept alive while the connection is used
     
-    https::client c;
+    net::client c;
     
     std::string url = ...; // your target host url here
     std::string port = "443"; // port number
 
-    auto conn = c.connect(url, port);
+    auto conn = c.http(url, port);
     
     https::request_t req(boost::beast::http::verb::get, "/index.html", 11);
     req.set(boost::beast::http::field::host, url);
