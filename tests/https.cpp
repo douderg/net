@@ -1,22 +1,18 @@
+#include <net/client.hpp>
+#include <net/server.hpp>
 
+#include <boost/beast.hpp>
 
-#include "net/http.hpp"
-#include <boost/beast/http/field.hpp>
-#include <boost/beast/http/status.hpp>
-#include <boost/beast/http/verb.hpp>
-#include <boost/beast/version.hpp>
 #include <chrono>
 #include <cstdlib>
 #include <future>
-#include <net/client.hpp>
-#include <net/server.hpp>
 #include <stdexcept>
 #include <iostream>
 #include <thread>
 
 int server_side() {
-    auto req_handler = [](const http::request_t& req) -> http::response_t {
-        http::response_t result;
+    auto req_handler = [](const https::request_t& req) -> https::response_t {
+        https::response_t result;
         result.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
         result.keep_alive(req.keep_alive());
         result.version(req.version());
@@ -34,7 +30,7 @@ int server_side() {
 
     try {
         net::server server;
-        auto listener = server.http("127.0.0.1", 42428);
+        auto listener = server.https("127.0.0.1", 42429);
         listener->accept_next().get()
             .handle_request(req_handler).get();
         listener->accept_next().get()
@@ -47,8 +43,8 @@ int server_side() {
     return EXIT_SUCCESS;
 }
 
-http::request_t make_request(const std::string& target) {
-    http::request_t req{};
+https::request_t make_request(const std::string& target) {
+    https::request_t req{};
     req.version(11);
     req.keep_alive(true);
     req.target(target);
@@ -66,13 +62,13 @@ int main(int argc, char** argv) {
         
         net::client client;
 
-        auto response = client.http("127.0.0.1", "42428").send(make_request("/test1"));
+        auto response = client.https("127.0.0.1", "42429").send(make_request("/test1"));
         if (response.result() != boost::beast::http::status::ok) {
             std::cerr << "unexpected response " << response.result() << "\n";
             return EXIT_FAILURE;
         }
 
-        response = client.http("127.0.0.1", "42428").send(make_request("/test2"));
+        response = client.https("127.0.0.1", "42429").send(make_request("/test2"));
         if (response.result() != boost::beast::http::status::not_found) {
             std::cerr << "unexpected response\n";
             return EXIT_FAILURE;

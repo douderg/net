@@ -1,6 +1,10 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/beast/core/bind_handler.hpp>
+#include <boost/beast/core/role.hpp>
+#include <boost/beast/core/stream_traits.hpp>
+#include <boost/beast/version.hpp>
 #include <boost/beast/websocket/rfc6455.hpp>
+#include <boost/beast/websocket/stream_base.hpp>
 #include <chrono>
 #include <net/wss.hpp>
 #include <net/async.hpp>
@@ -116,7 +120,7 @@ void connection::connector::on_handshake(boost::beast::error_code ec) {
         result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
     } else {
         connection conn;
-        conn.stream_ = std::make_unique<boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>>>(std::move(stream_));
+        conn.stream_ = std::make_unique<stream_t>(std::move(stream_));
         result.set_value(std::move(conn));
     }
 }
@@ -135,6 +139,67 @@ void connection::disconnector::on_shutdown(boost::beast::error_code ec) {
         result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
     } else {
         result.set_value();
+    }
+}
+
+
+connection::acceptor::acceptor(boost::asio::io_context& io_ctx, boost::asio::ssl::context& ssl_ctx, const std::string& host, uint16_t port): 
+        acceptor_(boost::asio::make_strand(io_ctx)),
+        ssl_ctx_(ssl_ctx) {
+    boost::beast::error_code ec;
+    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address(host), port);
+    acceptor_.open(endpoint.protocol(), ec);
+    if (ec) {
+        throw std::runtime_error(ec.message());
+    }
+    acceptor_.set_option(boost::beast::net::socket_base::reuse_address(true), ec);
+    if (ec) {
+        throw std::runtime_error(ec.message());
+    }
+    acceptor_.bind(endpoint, ec);
+    if (ec) {
+        throw std::runtime_error(ec.message());
+    }
+    acceptor_.listen(boost::beast::net::socket_base::max_listen_connections, ec);
+    if (ec) {
+        throw std::runtime_error(ec.message());
+    }
+}
+
+void connection::acceptor::on_accept(boost::beast::error_code ec, boost::asio::ip::tcp::socket socket) {
+    if (ec) {
+        result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+    } else {
+        stream_ = std::make_unique<stream_t>(std::move(socket), ssl_ctx_);
+        boost::asio::dispatch(stream_->get_executor(), boost::beast::bind_front_handler(&acceptor::on_dispatch, shared_from_this()));
+    }
+}
+
+void connection::acceptor::on_dispatch() {
+    boost::beast::get_lowest_layer(*stream_).expires_after(std::chrono::seconds(30));
+    stream_->next_layer().async_handshake(boost::asio::ssl::stream_base::server, boost::beast::bind_front_handler(&acceptor::on_handshake, shared_from_this()));
+}
+
+void connection::acceptor::on_handshake(boost::beast::error_code ec) {
+    if (ec) {
+        result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+    } else {
+        boost::beast::get_lowest_layer(*stream_).expires_never();
+        stream_->set_option(boost::beast::websocket::stream_base::timeout::suggested(boost::beast::role_type::server));
+        stream_->set_option(boost::beast::websocket::stream_base::decorator([](boost::beast::websocket::response_type& response) -> void {
+            response.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        }));
+        stream_->async_accept(boost::beast::bind_front_handler(&acceptor::on_websocket_accept, shared_from_this()));
+    }
+}
+
+void connection::acceptor::on_websocket_accept(boost::beast::error_code ec) {
+    if (ec) {
+        result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+    } else {
+        connection conn;
+        conn.stream_ = std::move(stream_);
+        result.set_value(std::move(conn));
     }
 }
 
