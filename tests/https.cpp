@@ -1,3 +1,6 @@
+#include <cert.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/beast/core/flat_buffer.hpp>
 #include <net/client.hpp>
 #include <net/server.hpp>
 
@@ -9,6 +12,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <thread>
+
 
 int server_side() {
     auto req_handler = [](const https::request_t& req) -> https::response_t {
@@ -30,6 +34,15 @@ int server_side() {
 
     try {
         net::server server;
+        server.ssl_context().use_certificate_chain(
+            boost::asio::buffer(cert.data(), cert.size())
+        );
+        server.ssl_context().use_private_key(
+            boost::asio::buffer(key.data(), key.size()),
+            boost::asio::ssl::context::file_format::pem
+        );
+        server.ssl_context().use_tmp_dh(boost::asio::buffer(dhparams.data(), dhparams.size()));
+
         auto listener = server.https("127.0.0.1", 42429);
         listener->accept_next().get()
             .handle_request(req_handler).get();
@@ -61,7 +74,9 @@ int main(int argc, char** argv) {
         });
         
         net::client client;
-
+        client.ssl_context().add_certificate_authority(
+            boost::asio::buffer(cert.data(), cert.size())
+        );
         auto response = client.https("127.0.0.1", "42429").send(make_request("/test1"));
         if (response.result() != boost::beast::http::status::ok) {
             std::cerr << "unexpected response " << response.result() << "\n";

@@ -1,3 +1,4 @@
+#include <boost/asio/ssl/context.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core/bind_handler.hpp>
 #include <memory>
@@ -9,11 +10,20 @@ server::server():work_guard_(boost::asio::make_work_guard(io_ctx_)), ssl_ctx_(bo
     worker_ = std::thread([this]() -> void {
         io_ctx_.run();
     });
+    ssl_ctx_.set_options(
+        boost::asio::ssl::context::default_workarounds |
+        boost::asio::ssl::context::no_sslv2 | 
+        boost::asio::ssl::context::single_dh_use
+    );
 }
 
 server::~server() {
     io_ctx_.stop();
     worker_.join();
+}
+
+boost::asio::ssl::context& server::ssl_context() {
+    return ssl_ctx_;
 }
 
 std::shared_ptr<http::connection::listener> server::http(const std::string& host, uint16_t port) {

@@ -29,6 +29,10 @@ client::~client() {
     bg_.join();
 }
 
+boost::asio::ssl::context& client::ssl_context() {
+    return ssl_ctx_;
+}
+
 http::connection client::http(const std::string& host, const std::string& port) {
     return http::connection(io_ctx_, host, resolver_.resolve(host, port));
 }

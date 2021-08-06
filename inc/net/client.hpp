@@ -14,11 +14,13 @@ class client {
 public:
     client();
     ~client();
+
+    boost::asio::ssl::context& ssl_context();
+
     http::connection http(const std::string& host, const std::string& port);
     ws::connection ws(const std::string& host, const std::string& port, const std::string& uri);
 
     https::connection https(const std::string& host, const std::string& port);
-
     std::future<wss::connection> wss(const std::string& host, const std::string& port, const std::string& uri);
 
 private:

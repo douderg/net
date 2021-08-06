@@ -13,15 +13,13 @@
 
 namespace net {
 
-struct acceptor {
-
-};
-
 class server {
     
 public:
     server();
     ~server();
+
+    boost::asio::ssl::context& ssl_context();
 
     std::shared_ptr<http::connection::listener> http(const std::string& host, uint16_t port);
     std::shared_ptr<https::connection::listener> https(const std::string& host, uint16_t port);
