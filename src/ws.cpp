@@ -3,6 +3,7 @@
 
 #include <boost/beast/version.hpp>
 #include <boost/asio/strand.hpp>
+#include <stdexcept>
 
 
 namespace ws {
@@ -42,11 +43,19 @@ connection& connection::operator=(connection&& other) {
     return *this;
 }
 
-void connection::write(const std::string& data) {
-    stream_->write(boost::asio::buffer(data));
+std::future<void> connection::write(const std::string& req) {
+    if (!stream_) {
+        throw std::runtime_error("not connected");
+    }
+    auto writer = std::make_shared<async::writer>();
+    stream_->async_write(boost::asio::buffer(req), boost::beast::bind_front_handler(&async::writer::on_write, writer));
+    return writer->result.get_future();
 }
 
 std::future<std::string> connection::read() {
+    if (!stream_) {
+        throw std::runtime_error("not connected");
+    }
     auto reader = std::make_shared<async::reader>();
     stream_->async_read(reader->buffer, boost::beast::bind_front_handler(&async::reader::on_read, reader));
     return reader->result.get_future();

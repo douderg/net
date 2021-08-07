@@ -30,9 +30,8 @@ public:
     connection& operator=(const connection&) = delete;
     connection& operator=(connection&&);
 
-    void write(const std::string& data);
-
     std::future<std::string> read();
+    std::future<void> write(const std::string& data);
 
     explicit operator bool() const;
 
