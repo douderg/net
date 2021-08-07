@@ -1,6 +1,13 @@
 cmake_minimum_required (VERSION 3.7.0)
 project (net)
 
+if (MSVC)
+    add_compile_options(-D_WIN32_WINNT=0x0601)
+    add_compile_options(-bigobj)
+endif ()
+
+enable_testing()
+
 find_package (Boost REQUIRED COMPONENTS system thread)
 find_package (OpenSSL REQUIRED COMPONENTS SSL)
 
