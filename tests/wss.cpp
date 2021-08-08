@@ -1,5 +1,6 @@
 #include <net/client.hpp>
 #include <net/server.hpp>
+#include <cert.hpp>
 
 #include <chrono>
 #include <cstdlib>
@@ -12,7 +13,15 @@
 int server_side() {
     try {
         net::server server;
-        auto ws = server.ws("127.0.0.1", 42425);
+        server.ssl_context().use_certificate_chain(
+            boost::asio::buffer(cert.data(), cert.size())
+        );
+        server.ssl_context().use_private_key(
+            boost::asio::buffer(key.data(), key.size()),
+            boost::asio::ssl::context::file_format::pem
+        );
+        server.ssl_context().use_tmp_dh(boost::asio::buffer(dhparams.data(), dhparams.size()));
+        auto ws = server.wss("127.0.0.1", 42426);
         auto session = ws->accept_next().get();
         session.write("hello");
         std::string s = session.read().get();
@@ -33,7 +42,10 @@ int main() {
         );
         {
             net::client client;
-            auto ws = client.ws("127.0.0.1", "42425", "/").get();
+            client.ssl_context().add_certificate_authority(
+                boost::asio::buffer(cert.data(), cert.size())
+            );
+            auto ws = client.wss("127.0.0.1", "42426", "/").get();
             std::string s = ws.read().get();
             if (s != "hello") {
                 std::cerr << "unexpected server message: " << s << "\n";

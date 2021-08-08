@@ -39,10 +39,8 @@ std::shared_ptr<ws::connection::listener> server::ws(const std::string& host, ui
     return std::make_shared<ws::connection::listener>(io_ctx_, host, port);
 }
 
-std::future<wss::connection> server::wss(const std::string& host, uint16_t port) {
-    return std::make_shared<wss::connection::acceptor>(io_ctx_, ssl_ctx_, host, port)->run();
+std::shared_ptr<wss::connection::listener> server::wss(const std::string& host, uint16_t port) {
+    return std::make_shared<wss::connection::listener>(io_ctx_, ssl_ctx_, host, port);
 }
-
-
 
 }

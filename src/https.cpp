@@ -158,13 +158,19 @@ void connection::listener::async_result::on_accept(boost::beast::error_code ec, 
         result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
     } else {
         stream_ = std::make_unique<stream_t>(std::move(socket), ssl_ctx_);
-        boost::asio::dispatch(stream_->get_executor(), boost::beast::bind_front_handler(&async_result::on_dispatch, shared_from_this()));
+        boost::asio::dispatch(
+            stream_->get_executor(), 
+            boost::beast::bind_front_handler(&async_result::on_dispatch, shared_from_this())
+        );
     }
 }
 
 void connection::listener::async_result::on_dispatch() {
     boost::beast::get_lowest_layer(*stream_).expires_after(std::chrono::seconds(30));
-    stream_->async_handshake(boost::asio::ssl::stream_base::server, boost::beast::bind_front_handler(&async_result::on_handshake, shared_from_this()));
+    stream_->async_handshake(
+        boost::asio::ssl::stream_base::server, 
+        boost::beast::bind_front_handler(&async_result::on_handshake, shared_from_this())
+    );
 }
 
 void connection::listener::async_result::on_handshake(boost::beast::error_code ec) {

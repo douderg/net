@@ -47,7 +47,6 @@ private:
     typedef boost::beast::websocket::stream<boost::beast::tcp_stream> stream_t;
     class connector;
     class disconnector;
-    // class acceptor;
     class listener;
 
     std::unique_ptr<stream_t> stream_;
@@ -80,20 +79,6 @@ public:
     std::future<void> run();
     void on_shutdown(boost::beast::error_code ec);
 };
-
-
-// class connection::acceptor : public std::enable_shared_from_this<connection::acceptor> {
-//     boost::asio::ip::tcp::acceptor acceptor_;
-//     std::unique_ptr<stream_t> stream_;
-//     std::promise<connection> result_;
-// public:
-//     acceptor(boost::asio::io_context& io_ctx, const std::string& host, uint16_t port);
-
-//     std::future<connection> run();
-//     void on_accept(boost::beast::error_code ec, boost::asio::ip::tcp::socket socket);
-//     void on_dispatch();
-//     void on_websocket_accept(boost::beast::error_code ec);    
-// };
 
 class connection::listener : public net::listener {
 public:

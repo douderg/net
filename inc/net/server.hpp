@@ -24,7 +24,7 @@ public:
     std::shared_ptr<http::connection::listener> http(const std::string& host, uint16_t port);
     std::shared_ptr<https::connection::listener> https(const std::string& host, uint16_t port);
     std::shared_ptr<ws::connection::listener> ws(const std::string& host, uint16_t port);
-    std::future<wss::connection> wss(const std::string& host, uint16_t port);
+    std::shared_ptr<wss::connection::listener> wss(const std::string& host, uint16_t port);
 
     class listener;
     class ssl_listener;

@@ -13,3 +13,7 @@ add_test(NAME test_https COMMAND $<TARGET_FILE:test_https>)
 add_executable(test_ws ws.cpp)
 target_link_libraries(test_ws net)
 add_test(NAME test_ws COMMAND $<TARGET_FILE:test_ws>)
+
+add_executable(test_wss wss.cpp)
+target_link_libraries(test_wss net test_assets)
+add_test(NAME test_wss COMMAND $<TARGET_FILE:test_wss>)
