@@ -6,13 +6,14 @@
 
 namespace net {
 
-server::server():work_guard_(boost::asio::make_work_guard(io_ctx_)), ssl_ctx_(boost::asio::ssl::context::tlsv12_server) {
+server::server():work_guard_(boost::asio::make_work_guard(io_ctx_)), ssl_ctx_(boost::asio::ssl::context::tlsv13_server) {
     worker_ = std::thread([this]() -> void {
         io_ctx_.run();
     });
     ssl_ctx_.set_options(
         boost::asio::ssl::context::default_workarounds |
         boost::asio::ssl::context::no_sslv2 | 
+        boost::asio::ssl::context::no_sslv3 | 
         boost::asio::ssl::context::single_dh_use
     );
 }

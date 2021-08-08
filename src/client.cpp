@@ -12,7 +12,7 @@ namespace net {
 
 client::client():
         work_guard_(boost::asio::make_work_guard(io_ctx_)), // prevents io_ctx_ from stopping when there is no work to do
-        ssl_ctx_(boost::asio::ssl::context::tlsv12_client),
+        ssl_ctx_(boost::asio::ssl::context::tlsv13_client),
         resolver_(boost::asio::make_strand(io_ctx_)) {
 #ifdef _WIN32
     import_openssl_certificates(ssl_ctx_.native_handle());
