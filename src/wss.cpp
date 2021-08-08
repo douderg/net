@@ -12,7 +12,6 @@
 #include <memory>
 #include <exception>
 #include <stdexcept>
-#include <iostream>
 #include <thread>
 
 namespace wss {
@@ -168,7 +167,7 @@ connection::acceptor::acceptor(boost::asio::io_context& io_ctx, boost::asio::ssl
 
 void connection::acceptor::on_accept(boost::beast::error_code ec, boost::asio::ip::tcp::socket socket) {
     if (ec) {
-        result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+        result_.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
     } else {
         stream_ = std::make_unique<stream_t>(std::move(socket), ssl_ctx_);
         boost::asio::dispatch(stream_->get_executor(), boost::beast::bind_front_handler(&acceptor::on_dispatch, shared_from_this()));
@@ -182,7 +181,7 @@ void connection::acceptor::on_dispatch() {
 
 void connection::acceptor::on_handshake(boost::beast::error_code ec) {
     if (ec) {
-        result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+        result_.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
     } else {
         boost::beast::get_lowest_layer(*stream_).expires_never();
         stream_->set_option(boost::beast::websocket::stream_base::timeout::suggested(boost::beast::role_type::server));
@@ -195,12 +194,17 @@ void connection::acceptor::on_handshake(boost::beast::error_code ec) {
 
 void connection::acceptor::on_websocket_accept(boost::beast::error_code ec) {
     if (ec) {
-        result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
+        result_.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
     } else {
         connection conn;
         conn.stream_ = std::move(stream_);
-        result.set_value(std::move(conn));
+        result_.set_value(std::move(conn));
     }
+}
+
+std::future<connection> connection::acceptor::run() {
+    acceptor_.async_accept(boost::beast::bind_front_handler(&acceptor::on_accept, shared_from_this()));
+    return result_.get_future();
 }
 
 }

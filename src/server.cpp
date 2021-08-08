@@ -34,12 +34,14 @@ std::shared_ptr<https::connection::listener> server::https(const std::string& ho
     return std::make_shared<https::connection::listener>(io_ctx_, ssl_ctx_, host, port);
 }
 
-std::future<ws::connection> server::ws(const std::string& host, uint16_t port) {
-    return std::make_shared<ws::connection::acceptor>(io_ctx_, host, port)->result.get_future();
+std::shared_ptr<ws::connection::listener> server::ws(const std::string& host, uint16_t port) {
+    return std::make_shared<ws::connection::listener>(io_ctx_, host, port);
 }
 
 std::future<wss::connection> server::wss(const std::string& host, uint16_t port) {
-    return std::make_shared<wss::connection::acceptor>(io_ctx_, ssl_ctx_, host, port)->result.get_future();
+    return std::make_shared<wss::connection::acceptor>(io_ctx_, ssl_ctx_, host, port)->run();
 }
+
+
 
 }

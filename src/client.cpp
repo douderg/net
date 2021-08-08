@@ -37,8 +37,14 @@ http::connection client::http(const std::string& host, const std::string& port) 
     return http::connection(io_ctx_, host, resolver_.resolve(host, port));
 }
 
-ws::connection client::ws(const std::string& host, const std::string& port, const std::string& uri) {
-    return ws::connection(io_ctx_, host, port, uri, resolver_.resolve(host, port));
+std::future<ws::connection> client::ws(const std::string& host, const std::string& port, const std::string& uri) {
+    auto connector = std::make_shared<ws::connection::connector>(io_ctx_, host, port);
+    resolver_.async_resolve(
+        host, 
+        port, 
+        boost::beast::bind_front_handler(&ws::connection::connector::on_resolve, connector)
+    );
+    return connector->result.get_future();
 }
 
 https::connection client::https(const std::string& host, const std::string& port) {

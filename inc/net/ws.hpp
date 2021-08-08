@@ -1,5 +1,8 @@
 # pragma once
 
+#include <boost/asio/io_context.hpp>
+#include <net/listener.hpp>
+
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/websocket.hpp>
@@ -44,7 +47,8 @@ private:
     typedef boost::beast::websocket::stream<boost::beast::tcp_stream> stream_t;
     class connector;
     class disconnector;
-    class acceptor;
+    // class acceptor;
+    class listener;
 
     std::unique_ptr<stream_t> stream_;
 };
@@ -78,17 +82,34 @@ public:
 };
 
 
-class connection::acceptor : public std::enable_shared_from_this<connection::acceptor> {
-    boost::asio::ip::tcp::acceptor acceptor_;
-    std::unique_ptr<stream_t> stream_;
-public:
-    acceptor(boost::asio::io_context& io_ctx, const std::string& host, uint16_t port);
+// class connection::acceptor : public std::enable_shared_from_this<connection::acceptor> {
+//     boost::asio::ip::tcp::acceptor acceptor_;
+//     std::unique_ptr<stream_t> stream_;
+//     std::promise<connection> result_;
+// public:
+//     acceptor(boost::asio::io_context& io_ctx, const std::string& host, uint16_t port);
 
-    void on_accept(boost::beast::error_code ec, boost::asio::ip::tcp::socket socket);
-    void on_dispatch();
-    void on_websocket_accept(boost::beast::error_code ec);
-    
-    std::promise<connection> result;
+//     std::future<connection> run();
+//     void on_accept(boost::beast::error_code ec, boost::asio::ip::tcp::socket socket);
+//     void on_dispatch();
+//     void on_websocket_accept(boost::beast::error_code ec);    
+// };
+
+class connection::listener : public net::listener {
+public:
+    listener(boost::asio::io_context& io_ctx, const std::string& host, uint16_t port);
+    std::future<connection> accept_next();
+private:
+    class async_result : public std::enable_shared_from_this<async_result> {
+    public:
+        std::future<connection> run();
+        void on_accept(boost::beast::error_code ec, boost::asio::ip::tcp::socket socket);
+        void on_dispatch();
+        void on_websocket_accept(boost::beast::error_code ec);
+        std::promise<connection> result;
+    private:
+        std::unique_ptr<stream_t> stream_;        
+    };
 };
 
 }

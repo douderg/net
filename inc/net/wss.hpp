@@ -50,6 +50,7 @@ class connection::connector : public std::enable_shared_from_this<connection::co
 public:
     connector(boost::asio::io_context& io_ctx, boost::asio::ssl::context& ssl_ctx, const std::string& host, const std::string& port);
 
+    
     void on_resolve(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type results);
     void on_connect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type::endpoint_type endpoint);
     void on_ssl_handshake(boost::beast::error_code ec);
@@ -76,6 +77,7 @@ class connection::acceptor : public std::enable_shared_from_this<connection::acc
     boost::asio::ip::tcp::acceptor acceptor_;
     boost::asio::ssl::context& ssl_ctx_;
     std::unique_ptr<stream_t> stream_;
+    std::promise<connection> result_;
 public:
     acceptor(boost::asio::io_context& io_ctx, boost::asio::ssl::context& ssl_ctx, const std::string& host, uint16_t port);
 
@@ -83,8 +85,8 @@ public:
     void on_dispatch();
     void on_handshake(boost::beast::error_code ec);
     void on_websocket_accept(boost::beast::error_code ec);
-
-    std::promise<connection> result;
+    std::future<connection> run();
+    
 };
 
 }

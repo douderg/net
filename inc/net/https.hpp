@@ -66,7 +66,7 @@ public:
 };
 
 
-class connection::listener : public std::enable_shared_from_this<connection::listener> {
+class connection::listener {
 public:
     listener(boost::asio::io_context& io_ctx, boost::asio::ssl::context& ssl_ctx, const std::string& host, uint16_t port);
     std::future<connection> accept_next();
@@ -84,10 +84,6 @@ private:
         boost::asio::ssl::context& ssl_ctx_;
         std::unique_ptr<stream_t> stream_;
     };
-
-    void on_accept(boost::beast::error_code ec, boost::asio::ip::tcp::socket socket);
-    void on_dispatch();
-    void on_handshake(boost::beast::error_code ec);
     
     boost::asio::ip::tcp::acceptor acceptor_;
     boost::asio::ssl::context& ssl_ctx_;

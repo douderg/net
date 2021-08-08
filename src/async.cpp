@@ -1,5 +1,6 @@
 #include <net/async.hpp>
 
+#include <iostream>
 
 namespace async {
 
@@ -16,6 +17,7 @@ void writer::on_write(boost::beast::error_code ec, size_t bytes) {
         result.set_exception(std::make_exception_ptr(std::runtime_error(ec.message())));
         return;
     }
+    std::cout << "write complete" << std::endl;
     result.set_value();
 }
 
